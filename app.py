@@ -119,7 +119,8 @@ if uploaded_file is not None:
                     if summary and summary.strip():
                         st.subheader("Generated Summary")
                         st.markdown(summary)
-
+        
+                        
                     else:
                         st.warning(
                             "The AI model returned an empty response."
@@ -130,12 +131,72 @@ if uploaded_file is not None:
                     st.code(
                         f"{type(api_error).__name__}: {api_error}"
                     )
+      
+            if st.button("Generate Flashcards"):
+                try:
+                    with st.spinner("Generating flashcards....."):
+                        flashcard_response = client.chat.completions.create(
+                            model = "nvidia/nemotron-3-ultra-550b-a55b:free",
+                            messages = [
+                                {
+                                    "role":"system",
+                                    "content": (
+                                        "You are an AI study assistant. "
+                                        "Create flashcards only from the supplied study material."
+                                        "Do not add unsupported information."
+                                    )
+                                },
+                                {
+                                    "role":"user",
+                                    "content": f"""
+                                        Create exactly five useful study flashcards from the material below.
+                                        
+                                        Use this format:
+                                        
+                                        ### Flashcard 1
+                                        **Question:** Write the question here.
+                                        
+                                        **Answer:** Write the answer here.
+                                        
+                                        Continue the same format for all five flashcards. 
+                                        Keep the answers concise and clear.
+                                        
+                                        If an answer is not clearly stated in the material, do not guess.
+"                                       State that the information is not specified in the document.
 
+                                        Study material:
+                                        {cleaned_text}
+                                        """
+                            
+                                }
+                            ],
+                            max_tokens=800
+                        )
+                        
+                        flashcards =(
+                            flashcard_response.choices[0].message.content
+                        )
+                        
+                        if flashcards:
+                            st.subheader("Generated Flashcards")
+                            st.markdown(flashcards)
+                        else:
+                            st.warning(
+                                "The AI model returned no flashcards."
+                            )
+                             
+                except Exception as api_error:
+                    st.error("Flashcard generation failed.")
+                    st.code(
+                        f"{type(api_error).__name__}:{api_error}"
+                    )
+        
         else:
             st.warning(
                 "No readable text was found in this PDF. "
                 "It may be a scanned or image-only document."
             )
+                    
 
     except Exception as pdf_error:
         st.error("The PDF could not be processed.")
